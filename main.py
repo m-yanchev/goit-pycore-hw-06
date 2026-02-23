@@ -3,10 +3,17 @@ from collections import UserDict
 
 class Field:
     def __init__(self, value):
-        self.value = value
+        self.__value = value
 
     def __str__(self):
-        return str(self.value)
+        return str(self.__value)
+    
+    def get(self):
+        return self.__value
+    
+    def set(self, value):
+        self.__value = value
+
 
 
 class Name(Field):
@@ -16,9 +23,16 @@ class Name(Field):
 
 class Phone(Field):
     def __init__(self, value):
-        if not value.isdigit() or len(value) != 10:
-            raise PhoneNotValidError()
+        self.validate(value)
         super().__init__(value)
+
+    def set(self, value):
+        self.validate(value)
+        super().set(value)
+
+    def validate(self, value):
+        if not value or len(value) != 10:
+            raise PhoneNotValidError()
 
 
 class Record:
@@ -31,13 +45,13 @@ class Record:
 
     def edit_phone(self, old_phone: str, new_phone: str):
         for p in self.phones:
-            if p.value == old_phone:
-                p.value = new_phone
+            if p.get() == old_phone:
+                p.set(new_phone)
                 break
     
     def find_phone(self, phone: str) -> Phone | None:
         for p in self.phones:
-            if p.value == phone:
+            if p.get() == phone:
                 return p
         return None
 
@@ -47,12 +61,12 @@ class Record:
             self.phones.remove(phone_obj)
 
     def __str__(self):
-        return f"Contact name: {self.name.value}, phones: {'; '.join(p.value for p in self.phones)}"
+        return f"Contact name: {self.name.get()}, phones: {'; '.join(p.get() for p in self.phones)}"
 
 
 class AddressBook(UserDict):
     def add_record(self, record: Record):
-        self.data[record.name.value] = record
+        self.data[record.name.get()] = record
 
     def find(self, name: str) -> Record | None:
         return self.data.get(name)
@@ -88,7 +102,7 @@ john.edit_phone("1234567890", "1112223333")
 print(john)  # Виведення: Contact name: John, phones: 1112223333; 5555555555
 # Пошук конкретного телефону в записі John
 found_phone = john.find_phone("5555555555")
-print(f"{john.name}: {found_phone}")  # Виведення: 5555555555
+print(f"{john.name.get()}: {found_phone}")  # Виведення: 5555555555
 # Видалення запису Jane
 book.delete("Jane")
 
@@ -110,3 +124,9 @@ try:
 except PhoneNotValidError as e:
     print(e)  # Виведення: Phone number must be 10 digits long and contain only numbers.
 
+# Спроба змінити телефон на некоректний
+try:
+    john.edit_phone("5555555555", "invalid_phone")
+except PhoneNotValidError as e:
+    print(e)  # Виведення: Phone number must be 10 digits long and contain only numbers.
+print(john)  # Виведення: Contact name: John, phones: 5555555555
